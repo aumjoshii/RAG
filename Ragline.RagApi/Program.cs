@@ -12,17 +12,21 @@ Db.Init();
 builder.Services.AddSingleton<RagRepository>();
 
 
+var embeddingsBaseUrl = builder.Configuration["Embeddings:BaseUrl"] ?? "http://127.0.0.1:8001";
+var ollamaBaseUrl = builder.Configuration["Ollama:BaseUrl"] ?? "http://127.0.0.1:11434";
+
 builder.Services.AddHttpClient<EmbeddingsClient>(c =>
 {
-    c.BaseAddress = new Uri("http://127.0.0.1:8001");
+    c.BaseAddress = new Uri(embeddingsBaseUrl);
     c.Timeout = TimeSpan.FromMinutes(2);
 });
 
 builder.Services.AddHttpClient<OllamaClient>(c =>
 {
-    c.BaseAddress = new Uri("http://127.0.0.1:11434");
+    c.BaseAddress = new Uri(ollamaBaseUrl);
     c.Timeout = TimeSpan.FromMinutes(5);
 });
+
 
 
 builder.Services.AddOpenApi();
@@ -75,20 +79,34 @@ app.MapPost("/ask", async (HttpRequest request, RagRepository repo, EmbeddingsCl
         .Take(topK)
         .ToList();
 
+    var bestScore = scored.Count > 0 ? scored[0].score : 0.0;
+
+    // If similarity is weak, tell the model and also show a warning in response later.
+    var weakMatch = bestScore < 0.18;
+
+
     var context = string.Join("\n\n", scored.Select((s, i) =>
         $"[Source {i + 1}] file={s.fileName}, page={(s.page?.ToString() ?? "n/a")}, chunk={s.chunkIndex}\n{s.text}"
     ));
 
+    var matchNote = weakMatch
+    ? "NOTE: The retrieved sources may be weak matches (low similarity). Answer cautiously."
+    : "NOTE: The retrieved sources are likely relevant.";
+
     var prompt =
-$@"You are a helpful assistant. Answer using ONLY the provided sources.
-If the sources do not contain the answer, say: ""I don't know based on the uploaded documents.""
+    $@"You are a helpful assistant.
+Use the Sources to answer. If the Sources are insufficient, give the best high-level summary you can and say what is missing.
+
+{matchNote}
 
 Question: {body.question}
 
 Sources:
 {context}
 
-Answer:";
+Answer (2-4 sentences):";
+
+
 
     var answer = await llm.GenerateAsync(prompt);
 
@@ -101,7 +119,8 @@ Answer:";
         text = s.text.Length > 300 ? s.text[..300] + "…" : s.text
     });
 
-    return Results.Ok(new { answer, sources });
+    return Results.Ok(new { answer, sources, bestScore, weakMatch });
+
 });
 
 app.MapGet("/documents", (RagRepository repo) =>
