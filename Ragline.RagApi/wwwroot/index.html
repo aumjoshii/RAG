@@ -27,7 +27,9 @@
   <button onclick="ask()">Ask</button>
 
   <h3>Answer</h3>
+  <div id="conf"></div>
   <pre id="ans"></pre>
+  
 
   <h3>Sources</h3>
   <pre id="src"></pre>
@@ -52,6 +54,11 @@ async function ask() {
     body: JSON.stringify({ question:q, topK:5 })
   });
   const j = await r.json();
+  const score = (j.bestScore ?? 0);
+  const weak = (j.weakMatch === true);
+  document.getElementById('conf').innerText =
+    `confidence: ${score.toFixed(3)} ${weak ? "(weak match)" : ""}`;
+
   document.getElementById('ans').innerText = j.answer || '';
   document.getElementById('src').innerText = (j.sources||[]).map(s =>
     `score=${(s.score ?? 0).toFixed(3)} file=${s.fileName} page=${s.page ?? 'n/a'} chunk=${s.chunkIndex}\n${s.text}\n`
