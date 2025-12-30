@@ -1,0 +1,6 @@
+@Ragline.RagApi_HostAddress = http://localhost:5072
+
+GET {{Ragline.RagApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

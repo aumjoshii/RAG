@@ -1,0 +1,17 @@
+# Python
+ai/.venv/
+__pycache__/
+*.pyc
+
+# .NET
+bin/
+obj/
+*.user
+*.suo
+
+# Local data
+rag.db
+uploads/
+
+# OS
+.DS_Store
