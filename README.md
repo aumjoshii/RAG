@@ -32,3 +32,136 @@ From repo root:
 ```bash
 ./run.sh
 
+🧠 How Ragline Works (End-to-End)
+
+Ragline is a fully local Retrieval-Augmented Generation (RAG) system designed to produce grounded, explainable answers from user-provided documents.
+
+Pipeline:
+
+Document ingestion
+
+Accepts .pdf and .txt files
+
+PDF text extracted page-by-page using PdfPig
+
+Text is cleaned (normalized whitespace, line breaks removed)
+
+Chunking
+
+Documents are split into overlapping chunks
+
+Default: 500 characters with 100 character overlap
+
+Overlap preserves context across boundaries
+
+Embeddings
+
+Each chunk is embedded using a local Python FastAPI service
+
+Model: sentence-transformers/all-MiniLM-L6-v2
+
+Embeddings are stored in SQLite alongside chunk metadata
+
+Question answering
+
+User question is embedded
+
+Top-K similar chunks are retrieved using cosine similarity
+
+Retrieved context is sent to a local LLM (Ollama)
+
+The model answers only using retrieved sources
+
+✅ Why Ragline’s Answers Are Trustworthy
+
+Ragline is designed to avoid hallucinations:
+
+Answers are generated only from retrieved document chunks
+
+Each answer includes:
+
+Source document name
+
+Page number
+
+Chunk index
+
+Similarity score
+
+Similarity Thresholding
+
+If the highest similarity score is low, Ragline:
+
+Warns the model internally
+
+Displays a “weak match” confidence in the UI
+
+This prevents confident answers when retrieval is poor
+
+Confidence score interpretation:
+
+< 0.15 → weak / likely unrelated
+
+0.18 – 0.25 → partial relevance
+
+0.25 – 0.35 → strong semantic match
+
+> 0.35 → very strong grounding
+
+📊 UI Transparency
+
+The UI exposes retrieval quality directly:
+
+Confidence badge per answer
+
+Visual indicators for weak vs strong matches
+
+Expandable list of retrieved source chunks
+
+This makes the system explainable and debuggable, not a black box.
+
+🐳 Running with Docker
+
+From the repository root:
+
+docker compose up --build
+
+
+Services started:
+
+.NET API (document ingestion + RAG logic)
+
+Embeddings service (Python + sentence-transformers)
+
+Ollama (local LLM inference)
+
+🛠 Common Issues & Fixes
+
+Ollama returns 404
+
+docker compose exec ollama ollama pull llama3.2:3b
+
+
+Low confidence answers
+
+Re-upload documents after changing chunk size
+
+Ensure text extraction is clean
+
+Ask questions closely related to document content
+
+Docker daemon not running
+
+Start Docker Desktop and retry
+
+🎯 Project Goals
+
+Ragline is built to demonstrate:
+
+Practical RAG architecture
+
+Grounded generation with explainability
+
+Local, cost-free AI systems
+
+Production-minded engineering choices
