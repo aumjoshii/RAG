@@ -123,6 +123,30 @@ Answer (2-4 sentences):";
 
 });
 
+app.MapGet("/status", async (EmbeddingsClient emb, OllamaClient ollama) =>
+{
+    bool embeddingsOk = false;
+    bool ollamaOk = false;
+
+    try
+    {
+        // simplest ping: embed a tiny string
+        var v = await emb.EmbedAsync(new List<string> { "ping" });
+        embeddingsOk = v is { Count: > 0 };
+    }
+    catch { }
+
+    try
+    {
+        // call tags endpoint (you may already have a method; otherwise just do a lightweight call)
+        ollamaOk = await ollama.IsHealthyAsync();
+    }
+    catch { }
+
+    return Results.Ok(new { embeddingsOk, ollamaOk });
+});
+
+
 app.MapGet("/documents", (RagRepository repo) =>
 {
     var docs = repo.ListDocuments().Select(d => new
@@ -169,9 +193,11 @@ app.MapPost("/documents", async (HttpRequest request, RagRepository repo, Embedd
     int idx = 0;
     foreach (var p in pages)
     {
-        foreach (var ch in TextChunker.Chunk(p.Text))
-            allChunks.Add((idx++, p.PageNumber, ch));
+        int chunkIdx = 0;
+        foreach (var ch in TextChunker.Chunk(p.Text, size: 500, overlap: 100))
+            allChunks.Add((chunkIdx++, p.PageNumber, ch));
     }
+
 
     // Embed in batches (keeps memory sane)
     const int batch = 32;

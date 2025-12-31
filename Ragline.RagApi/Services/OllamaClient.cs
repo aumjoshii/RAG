@@ -27,5 +27,12 @@ public class OllamaClient
         return json?.response?.Trim() ?? "";
     }
 
+    public async Task<bool> IsHealthyAsync()
+    {
+        var resp = await _http.GetAsync("/api/tags");
+        return resp.IsSuccessStatusCode;
+    }
+
+
     private class GenResp { public string? response { get; set; } }
 }
