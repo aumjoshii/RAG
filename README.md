@@ -29,6 +29,81 @@ A fully functional Retrieval-Augmented Generation (RAG) app that runs locally wi
 From repo root:
 
 ### 1) Start everything
-```bash
+
 ./run.sh
 
+---
+
+## 🧠 How Ragline Works (End-to-End)
+
+Ragline is a fully local Retrieval-Augmented Generation (RAG) system designed to produce grounded, explainable answers from user-provided documents.
+
+### Pipeline
+
+#### 1. Document ingestion
+- Accepts `.pdf` and `.txt` files
+- PDF text extracted page-by-page using **PdfPig**
+- Text is cleaned (normalized whitespace, line breaks removed)
+
+#### 2. Chunking
+- Documents are split into overlapping chunks
+- Default configuration:
+  - **Chunk size:** 500 characters
+  - **Overlap:** 100 characters
+- Overlap preserves context across boundaries
+
+#### 3. Embeddings
+- Each chunk is embedded using a local Python FastAPI service
+- Model: `sentence-transformers/all-MiniLM-L6-v2`
+- Embeddings are stored in SQLite alongside chunk metadata
+
+#### 4. Question answering
+- User question is embedded
+- Top-K similar chunks are retrieved using cosine similarity
+- Retrieved context is sent to a local LLM (Ollama)
+- The model answers **only using retrieved sources**
+
+---
+
+## ✅ Why Ragline’s Answers Are Trustworthy
+
+Ragline is designed to avoid hallucinations:
+
+- Answers are generated **only from retrieved document chunks**
+- Each answer includes:
+  - Source document name
+  - Page number
+  - Chunk index
+  - Similarity score
+
+### Similarity Thresholding
+
+If the highest similarity score is low, Ragline:
+- Warns the model internally
+- Displays a **“weak match”** confidence in the UI
+
+**Confidence score interpretation:**
+- `< 0.15` → weak / likely unrelated
+- `0.18 – 0.25` → partial relevance
+- `0.25 – 0.35` → strong semantic match
+- `> 0.35` → very strong grounding
+
+---
+
+## 📊 UI Transparency
+
+The UI exposes retrieval quality directly:
+- Confidence badge per answer
+- Visual indicators for weak vs strong matches
+- Expandable list of retrieved source chunks
+
+This makes the system explainable and debuggable, not a black box.
+
+---
+
+## 🐳 Running with Docker
+
+From the repository root:
+
+```bash
+docker compose up --build
