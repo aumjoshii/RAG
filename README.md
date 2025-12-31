@@ -31,7 +31,7 @@ From repo root:
 ### 1) Start everything
 ```bash
 ./run.sh
-
+```
 🧠 How Ragline Works (End-to-End)
 
 Ragline is a fully local Retrieval-Augmented Generation (RAG) system designed to produce grounded, explainable answers from user-provided documents.
